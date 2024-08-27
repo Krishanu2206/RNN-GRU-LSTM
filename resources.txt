@@ -1,0 +1,107 @@
+In the provided `RNN` class, the input to the `nn.Linear` layer is `hidden_size * sequence_length`. Here's why:
+
+### Understanding the RNN Output:
+1. **RNN Output Shape**: 
+   - When you pass a batch of sequences through the RNN layer with `batch_first=True`, the output from the RNN layer has the shape `(batch_size, sequence_length, hidden_size)`.
+   - Here:
+     - `batch_size` is the number of sequences in a batch.
+     - `sequence_length` is the length of each sequence.
+     - `hidden_size` is the size of the hidden state (number of features in the RNN output for each time step).
+
+2. **Flattening for Fully Connected Layer**:
+   - The RNN output is 3-dimensional (`batch_size, sequence_length, hidden_size`), but the `nn.Linear` layer expects a 2-dimensional input of shape `(batch_size, input_features)`.
+   - To pass the RNN output through a fully connected layer, you first need to flatten the last two dimensions (`sequence_length` and `hidden_size`) into a single dimension. This can be done using `view` or `reshape`, resulting in a tensor of shape `(batch_size, sequence_length * hidden_size)`.
+
+3. **Why `hidden_size * sequence_length`?**:
+   - The reason `hidden_size * sequence_length` is used as the input size for the `nn.Linear` layer is that you are combining all the outputs of the RNN across the sequence into one long vector for each batch item.
+   - Each sequence of outputs (of length `sequence_length` with `hidden_size` features each) is flattened into a single vector of length `hidden_size * sequence_length`.
+
+### Example:
+Assume:
+- `hidden_size = 128`
+- `sequence_length = 10`
+
+The output from the RNN for a single batch would have a shape of `(batch_size, 10, 128)`. Flattening this to pass through a fully connected layer results in a shape of `(batch_size, 10 * 128)` or `(batch_size, 1280)`.
+
+Thus, the input size for the `nn.Linear` layer is `hidden_size * sequence_length`.
+
+
+In recurrent neural networks (RNNs), including the one you're working with, the hidden state `h` is what carries information from one time step to the next. The hidden state is essentially a memory that the RNN uses to process sequences of data. The initial hidden state `h0` is important because it sets the starting point for this memory.
+
+### Why We Need to Give `h0`:
+
+1. **Initialization of the Hidden State**:
+   - The RNN processes input sequences one step at a time. At the first time step, there is no previous hidden state, so we need to initialize the hidden state with some value.
+   - `h0` is the initial hidden state that the RNN uses at the beginning of processing a sequence. If you don't explicitly provide `h0`, it will typically be initialized to a tensor of zeros by default.
+
+2. **Carrying Information Across Time Steps**:
+   - The hidden state `h_t` at any time step `t` is computed using the input at that time step and the hidden state from the previous time step (`h_(t-1)`). This means that the hidden state carries information across time steps, allowing the RNN to maintain context from earlier in the sequence.
+   - Starting with a properly initialized `h0` ensures that the RNN has a defined starting point, which is crucial for the sequence processing.
+
+3. **Custom Initialization**:
+   - In some cases, you might want to initialize `h0` to something other than zeros, especially if you have specific information you want to encode into the starting state. For instance, in certain tasks like sequence generation or language modeling, initializing `h0` in a specific way can help improve model performance.
+
+### Summary:
+The initial hidden state `h0` is necessary because it provides the RNN with a starting point for processing sequences. Without `h0`, the RNN wouldn't know what to use as the hidden state for the first time step. While it's common to initialize `h0` as a zero tensor, you have the flexibility to customize this if needed.
+
+
+
+
+
+
+
+
+LSTM
+
+Here's the copied and pasted explanation from the PyTorch documentation regarding the input and output shapes of the LSTM module:
+
+---
+
+### Inputs: `input`, (`h_0`, `c_0`)
+
+- **`input`**: tensor of shape  
+  - `(L, H_in)` for unbatched input,  
+  - `(L, N, H_in)` when `batch_first=False`, or  
+  - `(N, L, H_in)` when `batch_first=True` containing the features of the input sequence. The input can also be a packed variable-length sequence. See `torch.nn.utils.rnn.pack_padded_sequence()` or `torch.nn.utils.rnn.pack_sequence()` for details.
+
+- **`h_0`**: tensor of shape  
+  - `(D*num_layers, H_out)` for unbatched input, or  
+  - `(D*num_layers, N, H_out)` containing the initial hidden state for each element in the input sequence. Defaults to zeros if `(h_0, c_0)` is not provided.
+
+- **`c_0`**: tensor of shape  
+  - `(D*num_layers, H_cell)` for unbatched input, or  
+  - `(D*num_layers, N, H_cell)` containing the initial cell state for each element in the input sequence. Defaults to zeros if `(h_0, c_0)` is not provided.
+
+Where:
+- **`N`** = batch size
+- **`L`** = sequence length
+- **`D`** = 2 if `bidirectional=True` otherwise 1
+- **`H_in`** = input_size
+- **`H_cell`** = hidden_size
+- **`H_out`** = proj_size if `proj_size > 0` otherwise hidden_size
+
+---
+
+### Outputs: `output`, (`h_n`, `c_n`)
+
+- **`output`**: tensor of shape  
+  - `(L, D*H_out)` for unbatched input,  
+  - `(L, N, D*H_out)` when `batch_first=False`, or  
+  - `(N, L, D*H_out)` when `batch_first=True` containing the output features (`h_t`) from the last layer of the LSTM, for each `t`.  
+  - If a `torch.nn.utils.rnn.PackedSequence` has been given as the input, the output will also be a packed sequence.  
+  - When `bidirectional=True`, output will contain a concatenation of the forward and reverse hidden states at each time step in the sequence.
+
+- **`h_n`**: tensor of shape  
+  - `(D*num_layers, H_out)` for unbatched input, or  
+  - `(D*num_layers, N, H_out)` containing the final hidden state for each element in the sequence.  
+  - When `bidirectional=True`, `h_n` will contain a concatenation of the final forward and reverse hidden states, respectively.
+
+- **`c_n`**: tensor of shape  
+  - `(D*num_layers, H_cell)` for unbatched input, or  
+  - `(D*num_layers, N, H_cell)` containing the final cell state for each element in the sequence.  
+  - When `bidirectional=True`, `c_n` will contain a concatenation of the final forward and reverse cell states, respectively.
+
+---
+
+These definitions are used to understand the input and output shapes for an LSTM layer in PyTorch.
+
